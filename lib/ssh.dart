@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:meta/meta.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
@@ -186,6 +187,18 @@ class SSHClient {
       "id": id,
       "path": path,
       "toPath": toPath,
+    });
+    return result;
+  }
+
+  Future<String> sftpAppendToFile({
+    @required String fromFilePath,
+    @required String toFilePath,
+  }) async {
+    var result = await _channel.invokeMethod('sftpAppendToFile', {
+      "id": id,
+      "fromPath": fromFilePath,
+      "toPath": toFilePath,
     });
     return result;
   }

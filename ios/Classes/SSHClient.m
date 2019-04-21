@@ -100,4 +100,11 @@ int uploadedPerc = 0;
   return result;
 }
 
+- (BOOL) sftpAppendContent:(NSString *)fromFilePath toFileAtPath:(NSString *)path {
+    _uploadContinue = true;
+    NSData *fileData = [NSData dataWithContentsOfFile:fromFilePath];
+    BOOL result = [self._sftpSession appendContents:fileData toFileAtPath:path];
+    return result;
+}
+
 @end

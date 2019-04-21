@@ -64,9 +64,9 @@
   } else if ([@"sftpCancelDownload" isEqualToString:call.method]) {
     [self sftpCancelDownload:args[@"id"]];
   } else if ([@"sftpUpload" isEqualToString:call.method]) {
-    [self sftpUpload:call.arguments[@"path"]
-              toPath:call.arguments[@"toPath"]
-             withKey:args[@"id"] result:result];
+    [self sftpUpload:call.arguments[@"path"] toPath:call.arguments[@"toPath"] withKey:args[@"id"] result:result];
+  } else if ([@"sftpAppendToFile" isEqualToString:call.method]) {
+    [self sftpAppendFileAtPath:call.arguments[@"fromPath"] toFileAtPath:call.arguments[@"toPath"] withKey:args[@"id"] result:result];
   } else if ([@"sftpCancelUpload" isEqualToString:call.method]) {
     [self sftpCancelUpload:args[@"id"]];
   } else if ([@"disconnectSFTP" isEqualToString:call.method]) {
@@ -429,6 +429,36 @@
   } else {
     result([FlutterError errorWithCode:@"unknown_client" message:@"Unknown client" details:nil]);
   }
+}
+
+- (void) sftpAppendFileAtPath:(NSString *)filePath
+             toFileAtPath:(NSString *)toPath
+            withKey:(nonnull NSString*)key
+             result:(FlutterResult)result {
+    SSHClient* client = [self clientForKey:key];
+    if (client) {
+        if ([self isConnected:client._session result:result] &&
+            [self isSFTPConnected:client._sftpSession result:result]) {
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                client.delegate = self;
+                BOOL res = [client sftpAppendContent:filePath toFileAtPath:toPath];
+                if (res) {
+                    result(@"appending_success");
+                } else {
+                    if (client._uploadContinue) {
+                        NSLog(@"Error appending contents");
+                        result([FlutterError errorWithCode:@"appending_failure"
+                                                   message:[NSString stringWithFormat:@"Failed to append %@ to %@", filePath, toPath]
+                                                   details:nil]);
+                    } else {
+                        result(@"append_canceled");
+                    }
+                }
+            });
+        }
+    } else {
+        result([FlutterError errorWithCode:@"unknown_client" message:@"Unknown client" details:nil]);
+    }
 }
 
 - (void) sftpCancelDownload:(nonnull NSString*)key {
