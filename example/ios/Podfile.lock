@@ -3,7 +3,7 @@ PODS:
   - NMSSH (2.3.1)
   - path_provider (0.0.1):
     - Flutter
-  - ssh (0.0.1):
+  - ssh (0.0.2):
     - Flutter
     - NMSSH
 
@@ -28,8 +28,8 @@ SPEC CHECKSUMS:
   Flutter: 9d0fac939486c9aba2809b7982dfdbb47a7b0296
   NMSSH: cd689ae535a1581a6dd9fd4600ff71247df510a6
   path_provider: 09407919825bfe3c2deae39453b7a5b44f467873
-  ssh: 23c39febae9c5f370375a3f143e1c0c431a883e3
+  ssh: 672925187947d644af03a04b02bc390bc1a8c298
 
 PODFILE CHECKSUM: 1e5af4103afd21ca5ead147d7b81d06f494f51a2
 
-COCOAPODS: 1.5.3
+COCOAPODS: 1.5.2

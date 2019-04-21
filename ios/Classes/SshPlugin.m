@@ -51,6 +51,8 @@
     [self connectSFTP:args[@"id"] result:result];
   } else if ([@"sftpLs" isEqualToString:call.method]) {
     [self sftpLs:args[@"path"] withKey:args[@"id"] result:result];
+  } else if ([@"sftpInfoForFile" isEqualToString:call.method]) {
+      [self sftpInfoForFile:args[@"path"] withKey:args[@"id"] result:result];
   } else if ([@"sftpRename" isEqualToString:call.method]) {
     [self sftpRename:args[@"oldPath"] newPath:args[@"newPath"] withKey:args[@"id"] result:result];
   } else if ([@"sftpMkdir" isEqualToString:call.method]) {
@@ -286,6 +288,45 @@
       result([FlutterError errorWithCode:@"unknown_client" message:@"Unknown client" details:nil]);
     }
   }
+}
+
+- (void) sftpInfoForFile:(NSString *)filePath
+                 withKey:(nonnull NSString*)key
+                  result:(FlutterResult)result {
+    SSHClient* client = [self clientForKey:key];
+    if (client) {
+        if ([self isConnected:client._session result:result] &&
+            [self isSFTPConnected:client._sftpSession result:result]) {
+            
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                NMSFTPFile* file = [client._sftpSession infoForFileAtPath:filePath];
+                if (file) {
+                    
+                    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+                    [formatter setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
+                    
+                    NSMutableDictionary* res = [NSMutableDictionary dictionary];
+                    [res setObject:file.filename forKey:@"filename"];
+                    [res setObject:[NSNumber numberWithBool:file.isDirectory] forKey:@"isDirectory"];
+                    [res setObject:[formatter stringFromDate:file.modificationDate] forKey:@"modificationDate"];
+                    [res setObject:[formatter stringFromDate:file.lastAccess] forKey:@"lastAccess"];
+                    [res setObject:file.fileSize forKey:@"fileSize"];
+                    [res setObject:[NSNumber numberWithUnsignedLong:file.ownerUserID] forKey:@"ownerUserID"];
+                    [res setObject:[NSNumber numberWithUnsignedLong:file.ownerGroupID] forKey:@"ownerGroupID"];
+                    [res setObject:file.permissions forKey:@"permissions"];
+                    [res setObject:[NSNumber numberWithUnsignedLong:file.flags] forKey:@"flags"];
+                    
+                    result(res);
+                } else {
+                    result([FlutterError errorWithCode:@"file_info_failure"
+                                               message:[NSString stringWithFormat:@"Failed to get file info at path  %@",filePath]
+                                               details:nil]);
+                }
+            });
+        } else {
+            result([FlutterError errorWithCode:@"unknown_client" message:@"Unknown client" details:nil]);
+        }
+    }
 }
 
 - (void) sftpRename:(NSString *)oldPath

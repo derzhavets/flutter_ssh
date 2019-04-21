@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'package:flutter/widgets.dart';
 import 'package:meta/meta.dart';
 import 'package:flutter/services.dart';
@@ -121,6 +122,14 @@ class SSHClient {
     return result;
   }
 
+  Future<SFTPFile> sftpFileInfo({@required String filePath}) async {
+    var response = await _channel.invokeMethod('sftpInfoForFile', {
+      "id": id,
+      "path": filePath,
+    });
+    return SFTPFile.fromPlatformResponse(response);
+  }
+
   Future<String> sftpRename({
     @required String oldPath,
     @required String newPath,
@@ -226,4 +235,27 @@ class SSHClient {
       "id": id,
     });
   }
+}
+
+class SFTPFile {
+  int flags;
+  bool isDirectory;
+  int ownerGroupID;
+  String filename;
+  int ownerUserID;
+  int size;
+  String permissions;
+  DateTime modificationDate;
+  DateTime lastAccess;
+
+  SFTPFile.fromPlatformResponse(LinkedHashMap<dynamic, dynamic> data)
+      : flags = data['flags'],
+        isDirectory = data['isDirectory'],
+        ownerGroupID = data['ownerGroupID'],
+        filename = data['filename'],
+        ownerUserID = data['ownerUserID'],
+        size = data['fileSize'],
+        permissions = data['permissions'],
+        modificationDate = DateTime.parse(data['modificationDate']),
+        lastAccess = DateTime.parse(data['lastAccess']);
 }
