@@ -10,6 +10,7 @@ import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpATTRS;
 import com.jcraft.jsch.SftpException;
 import com.jcraft.jsch.SftpProgressMonitor;
 
@@ -64,6 +65,8 @@ public class SshPlugin implements MethodCallHandler, StreamHandler {
       connectSFTP((HashMap) call.arguments, result);
     } else if (call.method.equals("sftpLs")) {
       sftpLs((HashMap) call.arguments, result);
+    } else if (call.method.equals("sftpInfoForFile")) {
+      sftpInfoForFile((HashMap) call.arguments, result);
     } else if (call.method.equals("sftpRename")) {
       sftpRename((HashMap) call.arguments, result);
     } else if (call.method.equals("sftpMkdir")) {
@@ -76,6 +79,8 @@ public class SshPlugin implements MethodCallHandler, StreamHandler {
       sftpDownload((HashMap) call.arguments, result);
     } else if (call.method.equals("sftpUpload")) {
       sftpUpload((HashMap) call.arguments, result);
+    } else if (call.method.equals("sftpAppendToFile")) {
+      sftpAppend((HashMap) call.arguments, result);
     } else if (call.method.equals("sftpCancelDownload")) {
       sftpCancelDownload((HashMap) call.arguments);
     } else if (call.method.equals("sftpCancelUpload")) {
@@ -345,6 +350,37 @@ public class SshPlugin implements MethodCallHandler, StreamHandler {
     }).start();
   }
 
+  private void sftpInfoForFile(final HashMap args, final Result result) {
+    new Thread(new Runnable()  {
+      public void run() {
+        try {
+          SSHClient client = clientPool.get(args.get("id"));
+          ChannelSftp channelSftp = client._sftpSession;
+
+          SftpATTRS fileAttrs = channelSftp.lstat(args.get("path").toString());
+          Map<String, Object> f = new HashMap<>();
+
+          f.put("filename", "filename");
+          f.put("isDirectory", fileAttrs.isDir());
+          Date datetime = new Date(fileAttrs.getMTime() * 1000L);
+          f.put("modificationDate", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(datetime));
+          datetime = new Date(fileAttrs.getATime() * 1000L);
+          f.put("lastAccess", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(datetime));
+          f.put("fileSize", fileAttrs.getSize());
+          f.put("ownerUserID", fileAttrs.getUId());
+          f.put("ownerGroupID", fileAttrs.getGId());
+          f.put("permissions", fileAttrs.getPermissionsString());
+          f.put("flags", fileAttrs.getFlags());
+
+          result.success(f);
+        } catch (SftpException error) {
+          Log.e(LOGTAG, "Failed to get file attrs " + error.getMessage());
+          result.error("ls_failure", error.getMessage(), null);
+        }
+      }
+    }).start();
+  }
+
   private void sftpRename(final HashMap args, final Result result) {
     new Thread(new Runnable()  {
       public void run() {
@@ -442,13 +478,36 @@ public class SshPlugin implements MethodCallHandler, StreamHandler {
           String toPath = args.get("toPath").toString();
           channelSftp.put(path, toPath + '/' + (new File(path)).getName(),
               new progressMonitor(args.get("id").toString(), "UploadProgress"), ChannelSftp.OVERWRITE);
-          if (client._uploadContinue == true)
+          if (client._uploadContinue)
             result.success("upload_success");
           else
             result.success("upload_canceled");
         } catch (SftpException error) {
           Log.e(LOGTAG, "Failed to upload " + args.get("path").toString());
-          result.error("upload_failure", error.getMessage(), null);
+          result.error("upload_failure ", error.getMessage(), null);
+        }
+      }
+    }).start();
+  }
+
+  private void sftpAppend(final HashMap args, final Result result) {
+    new Thread(new Runnable()  {
+      public void run() {
+        try {
+          SSHClient client = clientPool.get(args.get("id"));
+          client._uploadContinue = true;
+          ChannelSftp channelSftp = client._sftpSession;
+          String path = args.get("path").toString();
+          String toPath = args.get("toPath").toString();
+          channelSftp.put(path, toPath,
+                  new progressMonitor(args.get("id").toString(), "UploadProgress"), ChannelSftp.APPEND);
+          if (client._uploadContinue)
+            result.success("appending_success");
+          else
+            result.success("appending_canceled");
+        } catch (SftpException error) {
+          Log.e(LOGTAG, "Failed to append " + args.get("path").toString());
+          result.error("appending_failure ", error.getMessage(), null);
         }
       }
     }).start();

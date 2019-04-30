@@ -8,7 +8,7 @@ PODS:
     - NMSSH
 
 DEPENDENCIES:
-  - Flutter (from `.symlinks/flutter/ios`)
+  - Flutter (from `.symlinks/flutter/ios-release`)
   - path_provider (from `.symlinks/plugins/path_provider/ios`)
   - ssh (from `.symlinks/plugins/ssh/ios`)
 
@@ -18,18 +18,18 @@ SPEC REPOS:
 
 EXTERNAL SOURCES:
   Flutter:
-    :path: ".symlinks/flutter/ios"
+    :path: ".symlinks/flutter/ios-release"
   path_provider:
     :path: ".symlinks/plugins/path_provider/ios"
   ssh:
     :path: ".symlinks/plugins/ssh/ios"
 
 SPEC CHECKSUMS:
-  Flutter: 9d0fac939486c9aba2809b7982dfdbb47a7b0296
+  Flutter: 58dd7d1b27887414a370fcccb9e645c08ffd7a6a
   NMSSH: cd689ae535a1581a6dd9fd4600ff71247df510a6
-  path_provider: 09407919825bfe3c2deae39453b7a5b44f467873
-  ssh: 672925187947d644af03a04b02bc390bc1a8c298
+  path_provider: f96fff6166a8867510d2c25fdcc346327cc4b259
+  ssh: c949ce197d9cdd23d3d8718d9aee734f87c3380b
 
 PODFILE CHECKSUM: 1e5af4103afd21ca5ead147d7b81d06f494f51a2
 
-COCOAPODS: 1.5.2
+COCOAPODS: 1.6.1

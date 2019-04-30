@@ -206,7 +206,7 @@ class SSHClient {
   }) async {
     var result = await _channel.invokeMethod('sftpAppendToFile', {
       "id": id,
-      "fromPath": fromFilePath,
+      "path": fromFilePath,
       "toPath": toFilePath,
     });
     return result;

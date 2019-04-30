@@ -68,7 +68,7 @@
   } else if ([@"sftpUpload" isEqualToString:call.method]) {
     [self sftpUpload:call.arguments[@"path"] toPath:call.arguments[@"toPath"] withKey:args[@"id"] result:result];
   } else if ([@"sftpAppendToFile" isEqualToString:call.method]) {
-    [self sftpAppendFileAtPath:call.arguments[@"fromPath"] toFileAtPath:call.arguments[@"toPath"] withKey:args[@"id"] result:result];
+    [self sftpAppendFileAtPath:call.arguments[@"path"] toFileAtPath:call.arguments[@"toPath"] withKey:args[@"id"] result:result];
   } else if ([@"sftpCancelUpload" isEqualToString:call.method]) {
     [self sftpCancelUpload:args[@"id"]];
   } else if ([@"disconnectSFTP" isEqualToString:call.method]) {
