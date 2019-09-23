@@ -52,7 +52,7 @@
   } else if ([@"sftpLs" isEqualToString:call.method]) {
     [self sftpLs:args[@"path"] withKey:args[@"id"] result:result];
   } else if ([@"sftpInfoForFile" isEqualToString:call.method]) {
-      [self sftpInfoForFile:args[@"path"] withKey:args[@"id"] result:result];
+    [self sftpInfoForFile:args[@"path"] withKey:args[@"id"] result:result];
   } else if ([@"sftpRename" isEqualToString:call.method]) {
     [self sftpRename:args[@"oldPath"] newPath:args[@"newPath"] withKey:args[@"id"] result:result];
   } else if ([@"sftpMkdir" isEqualToString:call.method]) {
@@ -119,38 +119,43 @@
         passwordOrKey:(id) passwordOrKey // password or {privateKey: value, [publicKey: value, passphrase: value]}
               withKey:(nonnull NSString*)key
                result:(FlutterResult)result {
-  NMSSHSession* session = [NMSSHSession connectToHost:host
-                                                 port:port
-                                         withUsername:username];
-  if (session && session.isConnected) {
+    
+    
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-      if ([passwordOrKey isKindOfClass:[NSString class]])
-        [session authenticateByPassword:passwordOrKey];
-      else
-        [session authenticateByInMemoryPublicKey:[passwordOrKey objectForKey:@"publicKey"]
-                                      privateKey:[passwordOrKey objectForKey:@"privateKey"]
-                                     andPassword:[passwordOrKey objectForKey:@"passphrase"]];
-      
-      if (session.isAuthorized) {
-        SSHClient* client = [[SSHClient alloc] init];
-        client._session = session;
-        client._key = key;
-        [[self clientPool] setObject:client forKey:key];
-        NSLog(@"Session connected");
-        result(@"session_connected");
-      } else {
-        NSLog(@"Authentication failed");
-        result([FlutterError errorWithCode:@"auth_failure"
-                                   message:[NSString stringWithFormat:@"Authentication to host %@ failed", host]
-                                   details:nil]);
-      }
+        
+        NMSSHSession* session = [NMSSHSession alloc];
+        session = [session initWithHost:host port:port andUsername:username];
+        [session connectWithTimeout:@5];
+    
+          if (session && session.isConnected) {
+              if ([passwordOrKey isKindOfClass:[NSString class]])
+                [session authenticateByPassword:passwordOrKey];
+              else
+                [session authenticateByInMemoryPublicKey:[passwordOrKey objectForKey:@"publicKey"]
+                                              privateKey:[passwordOrKey objectForKey:@"privateKey"]
+                                             andPassword:[passwordOrKey objectForKey:@"passphrase"]];
+              
+              if (session.isAuthorized) {
+                SSHClient* client = [[SSHClient alloc] init];
+                client._session = session;
+                client._key = key;
+                [[self clientPool] setObject:client forKey:key];
+                NSLog(@"Session connected");
+                result(@"session_connected");
+              } else {
+                NSLog(@"Authentication failed");
+                result([FlutterError errorWithCode:@"auth_failure"
+                                           message:[NSString stringWithFormat:@"Authentication to host %@ failed", host]
+                                           details:nil]);
+              }
+
+          } else {
+            NSLog(@"Connection to host %@ failed", host);
+            result([FlutterError errorWithCode:@"connection_failure"
+                                       message:[NSString stringWithFormat:@"Connection to host %@ failed", host]
+                                       details:nil]);
+          }
     });
-  } else {
-    NSLog(@"Connection to host %@ failed", host);
-    result([FlutterError errorWithCode:@"connection_failure"
-                               message:[NSString stringWithFormat:@"Connection to host %@ failed", host]
-                               details:nil]);
-  }
 }
 
 - (void) execute:(NSString *)command
@@ -524,12 +529,20 @@
 }
 
 - (void) disconnect:(nonnull NSString*)key {
-  [self closeShell:key];
-  [self disconnectSFTP:key];
-  SSHClient* client = [self clientForKey:key];
-  if (client && client._session) {
-    [client._session disconnect];
-  }
+    UIApplicationState state = [[UIApplication sharedApplication] applicationState];
+    if (state != UIApplicationStateBackground && state != UIApplicationStateInactive)
+    {
+        @try {
+            [self closeShell:key];
+            [self disconnectSFTP:key];
+            SSHClient* client = [self clientForKey:key];
+            if (client && client._session) {
+                [client._session disconnect];
+            }
+        }
+        @catch (NSException * e) {
+        }
+    }
 }
 
 - (FlutterError * _Nullable)onListenWithArguments:(id _Nullable)arguments eventSink:(FlutterEventSink)eventSink {
