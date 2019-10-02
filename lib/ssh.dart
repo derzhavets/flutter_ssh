@@ -200,6 +200,15 @@ class SSHClient {
     return result;
   }
 
+
+  Future<String> sftpResumeFile(
+      {@required String path, @required String toPath, Callback callback,}) async {
+    uploadCallback = callback;
+    var result = await _channel.invokeMethod(
+        'sftpResumeFile', {"id": id, "path": path, "toPath": toPath,});
+    return result;
+  }
+
   Future<String> sftpAppendToFile({
     @required String fromFilePath,
     @required String toFilePath,

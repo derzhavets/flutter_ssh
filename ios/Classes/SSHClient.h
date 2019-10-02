@@ -19,4 +19,5 @@
 - (void) sftpDownload:(NSString *)path toPath:(NSString *)filePath error:(NSError **)error;
 - (BOOL) sftpUpload:(NSString *)filePath toPath:(NSString *)path;
 - (BOOL) sftpAppendContent:(NSString *)fromFilePath toFileAtPath:(NSString *) path;
+- (BOOL) resumeUploadingOfFile: (NSString *)filePath toFile: (NSString *) toPath;
 @end

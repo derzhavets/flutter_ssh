@@ -67,6 +67,8 @@
     [self sftpCancelDownload:args[@"id"]];
   } else if ([@"sftpUpload" isEqualToString:call.method]) {
     [self sftpUpload:call.arguments[@"path"] toPath:call.arguments[@"toPath"] withKey:args[@"id"] result:result];
+  } else if ([@"sftpResumeFile" isEqualToString:call.method]) {
+    [self sftpResumeFile:call.arguments[@"path"] toPath:call.arguments[@"toPath"] withKey:args[@"id"] result:result];
   } else if ([@"sftpAppendToFile" isEqualToString:call.method]) {
     [self sftpAppendFileAtPath:call.arguments[@"path"] toFileAtPath:call.arguments[@"toPath"] withKey:args[@"id"] result:result];
   } else if ([@"sftpCancelUpload" isEqualToString:call.method]) {
@@ -459,26 +461,60 @@
   if (client) {
     if ([self isConnected:client._session result:result] &&
         [self isSFTPConnected:client._sftpSession result:result]) {
-      dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        client.delegate = self;
-        BOOL res = [client sftpUpload:filePath toPath:toPath];
-        if (res) {
-          result(@"upload_success");
-        } else {
-          if (client._uploadContinue) {
-            NSLog(@"Error uploading file");
-            result([FlutterError errorWithCode:@"upload_failure"
-                                       message:[NSString stringWithFormat:@"Failed to upload %@ to %@", filePath, toPath]
-                                       details:nil]);
-          } else {
-            result(@"upload_canceled");
-          }
-        }
-      });
+          dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            client.delegate = self;
+            BOOL res = [client sftpUpload:filePath toPath:toPath];
+            if (res) {
+              result(@"upload_success");
+            } else {
+              if (client._uploadContinue) {
+                NSLog(@"Error uploading file");
+                result([FlutterError errorWithCode:@"upload_failure"
+                                           message:[NSString stringWithFormat:@"Failed to upload %@ to %@", filePath, toPath]
+                                           details:nil]);
+              } else {
+                result(@"upload_canceled");
+              }
+            }
+          });
     }
   } else {
     result([FlutterError errorWithCode:@"unknown_client" message:@"Unknown client" details:nil]);
   }
+}
+
+- (void) sftpResumeFile: (NSString *) atPath
+                 toPath: (NSString *) toPath
+                withKey:(nonnull NSString*)key
+                 result:(FlutterResult)result {
+    
+    SSHClient* client = [self clientForKey:key];
+    
+    if (client) {
+        if ([self isConnected:client._session result:result] &&
+            [self isSFTPConnected:client._sftpSession result:result]) {
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                client.delegate = self;
+                
+                BOOL res = [client resumeUploadingOfFile:atPath toFile:toPath];
+                
+                if (res) {
+                    result(@"uploading_success");
+                } else {
+                    if (client._uploadContinue) {
+                        NSLog(@"Error uploading contents");
+                        result([FlutterError errorWithCode:@"uploading_failure"
+                                                   message:[NSString stringWithFormat:@"Failed to upload %@ to %@", atPath, toPath]
+                                                   details:nil]);
+                    } else {
+                        result(@"upload_canceled");
+                    }
+                }
+            });
+        }
+    } else {
+        result([FlutterError errorWithCode:@"unknown_client" message:@"Unknown client" details:nil]);
+    }
 }
 
 - (void) sftpAppendFileAtPath:(NSString *)filePath

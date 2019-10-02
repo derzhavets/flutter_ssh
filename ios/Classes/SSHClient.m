@@ -100,6 +100,23 @@ int uploadedPerc = 0;
   return result;
 }
 
+- (BOOL) resumeUploadingOfFile: (NSString *) filePath
+                        toFile: (NSString *) toPath {
+    _uploadContinue = true;
+    uploadedPerc = 0;
+    long long fileSize = [[[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:nil][NSFileSize] longLongValue];
+    BOOL result = [self._sftpSession resumeFileAtPath:filePath toFileAtPath:toPath progress:^BOOL (NSUInteger bytes , NSUInteger totalBytes) {
+        int newPerc = (int)(100.0f * totalBytes / fileSize);
+        NSLog(@">>> PROGRESS: %d / %d", bytes, totalBytes);
+        if (newPerc > uploadedPerc) {
+            uploadedPerc = newPerc;
+            [self.delegate uploadProgressEvent:uploadedPerc withKey:self->_key];
+        }
+        return self->_uploadContinue;
+    }];
+    return result;
+}
+
 - (BOOL) sftpAppendContent:(NSString *)fromFilePath toFileAtPath:(NSString *)path {
     _uploadContinue = true;
     NSData *fileData = [NSData dataWithContentsOfFile:fromFilePath];
