@@ -130,6 +130,8 @@
         [session connectWithTimeout:@5];
     
           if (session && session.isConnected) {
+              [session setTimeout:@15];
+              
               if ([passwordOrKey isKindOfClass:[NSString class]])
                 [session authenticateByPassword:passwordOrKey];
               else
